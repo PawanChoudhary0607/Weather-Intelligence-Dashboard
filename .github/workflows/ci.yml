@@ -21,6 +21,9 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Make Maven Wrapper executable
+        run: chmod +x mvnw
+
       - name: Build and run tests
         env:
           OPENWEATHERMAP_API_KEY: ci-placeholder-key
