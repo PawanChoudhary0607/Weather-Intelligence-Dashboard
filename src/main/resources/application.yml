@@ -1,0 +1,74 @@
+spring:
+  application:
+    name: weather-intelligence-dashboard
+  thymeleaf:
+    cache: false
+
+server:
+  port: ${PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    root: INFO
+    com.portfolio.weatherintel: INFO
+
+# ---------------------------------------------------------------------------
+# External weather provider configuration.
+# Open-Meteo requires no API key and is the primary data source.
+# OpenWeatherMap is used only as a fallback when Open-Meteo is unavailable
+# and requires an API key supplied via the OPENWEATHERMAP_API_KEY env var.
+# ---------------------------------------------------------------------------
+weather:
+  providers:
+    open-meteo:
+      base-url: https://api.open-meteo.com/v1
+      geocoding-url: https://geocoding-api.open-meteo.com/v1
+      air-quality-url: https://air-quality-api.open-meteo.com/v1
+      connect-timeout-ms: 3000
+      read-timeout-ms: 5000
+    open-weather-map:
+      base-url: https://api.openweathermap.org/data/2.5
+      api-key: ${OPENWEATHERMAP_API_KEY:}
+      connect-timeout-ms: 3000
+      read-timeout-ms: 5000
+  cache:
+    weather-ttl-minutes: 15
+    air-quality-ttl-minutes: 45
+    geocoding-ttl-minutes: 1440
+
+  # -------------------------------------------------------------------------
+  # Recommendation engine thresholds. Centralized here so rule behavior can
+  # be tuned without code changes or redeployment.
+  # -------------------------------------------------------------------------
+  rules:
+    umbrella:
+      precipitation-probability-threshold-percent: 50
+      precipitation-amount-threshold-mm: 1.0
+    running:
+      min-comfortable-temp-c: 5.0
+      max-comfortable-temp-c: 28.0
+      max-aqi: 100
+      max-wind-speed-kmh: 30.0
+    outdoor-activity:
+      min-comfortable-temp-c: 0.0
+      max-comfortable-temp-c: 35.0
+      max-aqi: 150
+      max-precipitation-probability-percent: 60
+    travel:
+      max-wind-speed-kmh: 50.0
+      max-precipitation-probability-percent: 70
+      heavy-precipitation-amount-mm: 10.0
+    air-quality:
+      good-max: 50
+      moderate-max: 100
+      unhealthy-sensitive-max: 150
+      unhealthy-max: 200

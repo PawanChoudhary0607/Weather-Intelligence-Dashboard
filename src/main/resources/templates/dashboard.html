@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Intelligence Dashboard</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+          rel="stylesheet">
+
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+</head>
+<body>
+
+<header class="topbar">
+    <div class="topbar__inner">
+
+        <div class="topbar__brand">
+            <span class="topbar__logo" aria-hidden="true">&#9680;</span>
+            <span class="topbar__name">Weather Intelligence</span>
+        </div>
+
+        <form class="topbar__search" action="/" method="get">
+            <label class="topbar__search-label" for="place">Location</label>
+
+            <span class="topbar__search-icon" aria-hidden="true">&#128269;</span>
+
+            <input class="topbar__search-input"
+                   type="text"
+                   id="place"
+                   name="place"
+                   th:value="${searchedPlace}"
+                   placeholder="Search a city&hellip; (e.g. Tokyo, Nairobi, Lima)"
+                   autocomplete="off">
+
+            <button class="topbar__search-button" type="submit">
+                Check conditions
+            </button>
+        </form>
+
+    </div>
+</header>
+
+<div class="page">
+
+    <main th:if="${viewModel.hasError()}" class="panel panel--error">
+        <p class="panel--error__label">Unable to load conditions</p>
+
+        <p class="panel--error__message"
+           th:text="${viewModel.errorMessage()}">
+            Error message
+        </p>
+
+        <p class="panel--error__hint">
+            Try a different location, or check back in a few minutes.
+        </p>
+    </main>
+
+    <main th:unless="${viewModel.hasError()}"
+          th:with="standardRules=${viewModel.recommendations().?[activityType().name() != 'UMBRELLA']},
+                   umbrellaRule=${viewModel.recommendations().?[activityType().name() == 'UMBRELLA']},
+                   notRecommended=${standardRules.?[verdict().name() == 'NOT_RECOMMENDED']},
+                   standardCautions=${standardRules.?[verdict().name() == 'CAUTION']},
+                   umbrellaNeeded=${umbrellaRule.?[verdict().name() == 'RECOMMENDED']},
+                   umbrellaMaybe=${umbrellaRule.?[verdict().name() == 'CAUTION']},
+                   worstResult=${!notRecommended.isEmpty() ? notRecommended[0] : (!umbrellaNeeded.isEmpty() ? umbrellaNeeded[0] : (!standardCautions.isEmpty() ? standardCautions[0] : (!umbrellaMaybe.isEmpty() ? umbrellaMaybe[0] : null)))},
+                   concernCount=${notRecommended.size() + standardCautions.size() + umbrellaNeeded.size() + umbrellaMaybe.size()},
+                   umbrellaResult=${umbrellaRule},
+                   runningResult=${viewModel.recommendations().?[activityType().name() == 'RUNNING']},
+                   outdoorResult=${viewModel.recommendations().?[activityType().name() == 'OUTDOOR_ACTIVITY']},
+                   travelResult=${viewModel.recommendations().?[activityType().name() == 'TRAVEL']},
+                   airQualityResult=${viewModel.recommendations().?[activityType().name() == 'AIR_QUALITY']}">
+
+        <section class="hero">
+
+            <div class="hero__conditions">
+
+                <div class="hero__location-row">
+                    <span class="hero__eyebrow">Current conditions for</span>
+                    <span class="hero__stale-badge" th:if="${viewModel.dataStale()}">
+                        Fallback source
+                    </span>
+                </div>
+
+                <h1 class="hero__place"
+                    th:text="${viewModel.locationDisplayName()}">
+                    Location
+                </h1>
+
+                <div class="hero__temp-row">
+                    <span class="hero__temp"
+                          th:text="${#numbers.formatDecimal(viewModel.weather().temperatureCelsius(),1,0)} + '°'">
+                        --°
+                    </span>
+
+                    <div class="hero__temp-meta">
+                        <span class="hero__condition"
+                              th:text="${viewModel.weather().conditionDescription()}">
+                            Conditions
+                        </span>
+                        <span class="hero__feels-like">
+                            Feels like
+                            <strong th:text="${#numbers.formatDecimal(viewModel.weather().feelsLikeCelsius(),1,0)} + '°'">--°</strong>
+                        </span>
+                    </div>
+                </div>
+
+                <p class="hero__source">
+                    Source:
+                    <span th:text="${viewModel.weather().sourceProvider()}">Provider</span>
+                </p>
+
+            </div>
+
+            <div class="hero__headline hero__headline--success"
+                 th:if="${worstResult == null}">
+
+                <span class="hero__headline-eyebrow">Today's headline</span>
+
+                <p class="hero__headline-sentence">
+                    Good for most plans &mdash; no notable weather concerns right now.
+                </p>
+
+            </div>
+
+            <div class="hero__headline hero__headline--warning"
+                 th:if="${worstResult != null}">
+
+                <span class="hero__headline-eyebrow">Today's headline</span>
+
+                <p class="hero__headline-sentence"
+                   th:text="${worstResult.reasoning()}">
+                    Headline reasoning goes here.
+                </p>
+
+            </div>
+
+        </section>
+
+        <section class="risk-summary"
+                 th:classappend="${concernCount == 0 ? 'risk-summary--clear' : (!notRecommended.isEmpty() ? 'risk-summary--danger' : 'risk-summary--warning')}">
+
+    <span class="risk-summary__icon" aria-hidden="true"
+          th:text="${concernCount == 0 ? '✓' : '⚠'}">!</span>
+
+            <div class="risk-summary__text">
+                <p class="risk-summary__headline" th:if="${concernCount == 0}">
+                    No weather concerns today
+                </p>
+
+                <p class="risk-summary__headline" th:if="${concernCount == 1}">
+                    1 thing worth knowing today
+                </p>
+
+                <p class="risk-summary__headline"
+                   th:if="${concernCount > 1}"
+                   th:text="${concernCount + ' things worth knowing today'}">
+                    Multiple things worth knowing today
+                </p>
+
+                <p class="risk-summary__detail" th:if="${concernCount == 0}">
+                    Conditions look clear for everything below &mdash; umbrella, running, outdoor plans,
+                    travel, and air quality are all in good shape.
+                </p>
+
+                <p class="risk-summary__detail"
+                   th:if="${concernCount > 0}"
+                   th:text="${worstResult.activityType().getDisplayName() + ': ' + worstResult.reasoning()}">
+                    Detail goes here.
+                </p>
+            </div>
+
+            <span class="risk-summary__more"
+                  th:if="${concernCount > 1}"
+                  th:text="${'+' + (concernCount - 1) + ' more'}">
+        +1 more
+    </span>
+
+        </section>
+
+        <section class="metric-strip" aria-label="Current measurements">
+
+            <div class="metric">
+                <span class="metric__value"
+                      th:text="${#numbers.formatDecimal(viewModel.weather().windSpeedKmh(),1,0)} + ' km/h'">
+                    -- km/h
+                </span>
+                <span class="metric__label">Wind</span>
+            </div>
+
+            <div class="metric">
+                <span class="metric__value"
+                      th:text="${viewModel.weather().precipitationProbabilityPercent()} + '%'">
+                    --%
+                </span>
+                <span class="metric__label">Rain chance</span>
+            </div>
+
+            <div class="metric">
+                <span class="metric__value"
+                      th:text="${#numbers.formatDecimal(viewModel.weather().precipitationAmountMm(),1,1)} + ' mm'">
+                    -- mm
+                </span>
+                <span class="metric__label">Precipitation</span>
+            </div>
+
+            <div class="metric">
+                <span class="metric__value"
+                      th:text="${#numbers.formatDecimal(viewModel.weather().humidityPercent(),1,0)} + '%'">
+                    --%
+                </span>
+                <span class="metric__label">Humidity</span>
+            </div>
+
+        </section>
+
+        <section class="recommendations-section">
+
+            <h2 class="recommendations-section__label">Today's recommendations</h2>
+
+            <div class="recommendations">
+
+                <th:block th:each="result : ${umbrellaResult}">
+                    <div th:replace="fragments/recommendation-card :: card(result=${result})"></div>
+                </th:block>
+
+                <th:block th:each="result : ${runningResult}">
+                    <div th:replace="fragments/recommendation-card :: card(result=${result})"></div>
+                </th:block>
+
+                <th:block th:each="result : ${outdoorResult}">
+                    <div th:replace="fragments/recommendation-card :: card(result=${result})"></div>
+                </th:block>
+
+                <th:block th:each="result : ${travelResult}">
+                    <div th:replace="fragments/recommendation-card :: card(result=${result})"></div>
+                </th:block>
+
+                <th:block th:each="result : ${airQualityResult}">
+                    <div th:replace="fragments/recommendation-card :: card(result=${result})"></div>
+                </th:block>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer class="footer">
+        <p>
+            Built with Spring Boot &middot; Open-Meteo &middot; OpenWeatherMap Fallback
+        </p>
+    </footer>
+
+</div>
+
+</body>
+</html>

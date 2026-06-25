@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- ================================================================
+     Redesigned recommendation card.
+     Verdict is now the dominant visual element (large, color-matched
+     text) rather than a small corner badge, and is reinforced by a
+     colored status dot and bottom accent bar rather than a left
+     border - both deliberate departures from the previous
+     instrument-panel look toward a premium SaaS card pattern.
+     Uses the exact same fragment signature (card(result)) and the
+     exact same result.activityType()/verdict()/reasoning() accessors
+     as before, so no Thymeleaf variable contract changes.
+     ================================================================ -->
+<div th:fragment="card(result)"
+     class="card"
+     th:classappend="' card--' + ${result.verdict().getSeverityStyle()}">
+
+    <div class="card__header">
+
+        <div class="card__title-group">
+            <span class="card__status-dot" aria-hidden="true"></span>
+
+            <span class="card__icon" aria-hidden="true" th:switch="${result.activityType().name()}">
+                <th:block th:case="'UMBRELLA'">☂</th:block>
+                <th:block th:case="'RUNNING'">🏃</th:block>
+                <th:block th:case="'OUTDOOR_ACTIVITY'">🌳</th:block>
+                <th:block th:case="'TRAVEL'">✈</th:block>
+                <th:block th:case="'AIR_QUALITY'">🍃</th:block>
+                <th:block th:case="*">·</th:block>
+            </span>
+
+            <span class="card__activity"
+                  th:text="${result.activityType().getDisplayName()}">
+                Activity
+            </span>
+        </div>
+
+    </div>
+
+    <p class="card__verdict"
+       th:text="${result.verdict().getDisplayLabel()}">
+        Verdict
+    </p>
+
+    <p class="card__reasoning"
+       th:text="${result.reasoning()}">
+        Reasoning text goes here
+    </p>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,16 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  thymeleaf:
+    cache: true
+
+logging:
+  level:
+    root: WARN
+    com.portfolio.weatherintel: INFO
+
+management:
+  endpoint:
+    health:
+      show-details: never
